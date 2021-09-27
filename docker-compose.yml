@@ -1,0 +1,104 @@
+version: '3.7'
+services:
+
+  #PHP Service
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: riyad/php
+    container_name: app
+    restart: unless-stopped
+    tty: true
+    environment:
+      SERVICE_NAME: app
+      SERVICE_TAGS: dev
+    working_dir: /var/www/app
+    volumes:
+      - ./project:/var/www/app
+      - ./php/local.ini:/usr/local/etc/php/conf.d/local.ini
+    networks:
+      - app-network
+
+
+  #Nginx Service
+  webserver:
+    image: nginx
+    container_name: webserver
+    restart: unless-stopped
+    tty: true
+    ports:
+      - "8000:80"
+      - "4430:443"
+    volumes:
+      - ./project:/var/www/app
+      - ./nginx/conf.d/:/etc/nginx/conf.d/
+    networks:
+      - app-network
+
+
+  # database
+  mariadb:
+    image: mariadb:10.6.4-focal
+    ports:
+      - 27017:27017
+      - 3306:3306
+    volumes:
+      - ./mariadb/mysql:/var/lib/mysql
+    environment:
+      - MYSQL_ROOT_PASSWORD=root
+    networks:
+      - app-network
+  
+  #phpmyadmin    
+  phpmyadmin:
+    image: phpmyadmin:5.1.1
+    ports:
+      - 8080:80
+    environment:
+      - PMA_HOST=mariadb
+      - PMA_ARBITRARY=1
+    networks:
+      - app-network
+
+  #MySQL Service
+  # db:
+  #   image: mysql:5.7
+  #   restart: always
+  #   environment:
+  #     MYSQL_DATABASE: 'hood_chatbot'
+  #     # So you don't have to use root, but you can if you like
+  #     MYSQL_USER: 'user'
+  #     # You can use whatever password you like
+  #     MYSQL_PASSWORD: 'password'
+  #     # Password for root access
+  #     MYSQL_ROOT_PASSWORD: 'password'
+  #   ports:
+  #     # <Port exposed> : < MySQL Port running inside container>
+  #     - '3306:3306'
+  #   expose:
+  #     # Opens port 3306 on the container
+  #     - '3306'
+  #     # Where our data will be persisted
+  #   volumes:
+  #     - ./mariadb/mysql:/var/lib/mysql
+  #   networks:
+  #     - app-network
+
+  # adminer:
+  #   image: adminer
+  #   restart: always
+  #   ports:
+  #     - 8080:8080
+  #   networks:
+  #     - app-network
+
+
+#Docker Networks
+networks:
+  app-network:
+    driver: bridge
+#Volumes
+volumes:
+  dbdata:
+    driver: local
